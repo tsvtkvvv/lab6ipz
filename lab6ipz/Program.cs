@@ -8,46 +8,28 @@ public class ComputerSystem
 
     public void CheckState()
     {
-        Console.WriteLine("Checking system...");
-
-        if (InternetAvailable == true)
-        {
-            Console.WriteLine("Internet OK");
-        }
-        else
-        {
-            Console.WriteLine("No Internet");
-        }
-
-        if (MemoryAvailable < 500)
-        {
-            Console.WriteLine("Low RAM!");
-        }
-        else
-        {
-            Console.WriteLine("RAM normal");
-        }
-
-        if (CpuLoad > 80)
-        {
-            Console.WriteLine("High CPU load!");
-        }
-        else
-        {
-            Console.WriteLine("CPU OK");
-        }
+        PrintStatus("Internet", InternetAvailable, "Internet OK", "Without connection");
+        PrintStatus("Memory", MemoryAvailable >= 256, "Memory OK", "Low memory");
+        PrintStatus("CPU Load", CpuLoad < 75, "CPU Load OK", "High CPU Load");
     }
-}
 
-class Program
-{
-    static void Main()
+    private void PrintStatus(string name, bool condition, string okMessage, string badMessage)
     {
-        ComputerSystem system = new ComputerSystem();
-        system.InternetAvailable = true;
-        system.MemoryAvailable = 300;
-        system.CpuLoad = 63;
+        Console.WriteLine(condition ? okMessage : badMessage);
+    }
 
-        system.CheckState();
+
+    class Program
+    {
+        static void Main()
+        {
+            ComputerSystem system = new ComputerSystem();
+            system.InternetAvailable = true;
+            system.MemoryAvailable = 300;
+            system.CpuLoad = 63;
+
+            system.CheckState();
+            system.PrintStatus("Custom Check", system.MemoryAvailable > 512, "Sufficient Memory", "Insufficient Memory");
+        }
     }
 }
