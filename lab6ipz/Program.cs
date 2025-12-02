@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Mail;
 
 public interface IObserver
 {
@@ -15,9 +16,12 @@ public interface ISubject
 
 public class ComputerStateP
 {
+
     public bool InternetOK { get; set; }
     public bool MemoryOK { get; set; }
     public bool CpuLoadOK { get; set; }
+
+
 
     public ComputerStateP(bool internetOK, int memory, int cpuLoad)
     {
@@ -26,6 +30,45 @@ public class ComputerStateP
         CpuLoadOK = cpuLoad <= 80;
     }
 }
+public abstract class ObserverBaseP : IObserver
+
+{
+    protected int updateCount = 0;
+    public void Update(ComputerStateP state)
+    {
+        updateCount++;
+        Console.WriteLine($"Update count: {updateCount}");
+        LogUpdate(state);
+    }
+    protected abstract void LogUpdate(ComputerStateP state);
+}
+
+public class ConsoleLogger : ObserverBaseP
+{
+    private readonly string LogPrefix = "Console Logger: ";
+
+    protected override void LogUpdate(ComputerStateP state)
+    {
+        Console.WriteLine($"{LogPrefix} Internet OK : {state.InternetOK}");
+        Console.WriteLine($"{LogPrefix} Memory OK : {state.MemoryOK}");
+        Console.WriteLine($"{LogPrefix} CPU Load OK : {state.CpuLoadOK}");
+    }
+}
+public class CriticalAlertObserever : ObserverBaseP
+{
+    
+    protected override void LogUpdate(ComputerStateP state)
+    {
+        if (!state.InternetOK || !state.MemoryOK || !state.CpuLoadOK)
+        {
+            
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("!!! [CRITICAL ALERT] ");
+            Console.ResetColor();
+        }
+    }
+}
+
 
 public class ComputerSystemP : ISubject
 {
@@ -64,30 +107,9 @@ public class ComputerSystemP : ISubject
     }
 }
 
-public class ConsoleLogger : IObserver
-{
-    public void Update(ComputerStateP state)
-    {
-        Console.WriteLine("Console Logger ");
-        Console.WriteLine($"Internet OK : {state.InternetOK}");
-        Console.WriteLine($"Memory OK : {state.MemoryOK}");
-        Console.WriteLine($"CPU Load OK : {state.CpuLoadOK}");
-       
-    }
-}
 
-public class CriticalAlertObserver : IObserver
-{
-    public void Update(ComputerStateP state)
-    {
-        if (!state.InternetOK || !state.MemoryOK || !state.CpuLoadOK)
-        {
-           
-            Console.WriteLine("!!! [CRITICAL ALERT] ");
-            Console.ResetColor();
-        }
-    }
-}
+
+
 
 public class Program
 {
@@ -96,7 +118,7 @@ public class Program
         var systemMonitor = new ComputerSystemP();
 
         systemMonitor.Attach(new ConsoleLogger());
-        systemMonitor.Attach(new CriticalAlertObserver());
+        systemMonitor.Attach(new CriticalAlertObserever());
 
         
 
@@ -109,7 +131,7 @@ public class Program
        
 
         systemMonitor.SetSystemStatus(
-            internet: false,
+            internet: true,
             memory: 650,
             cpu: 95
         );
