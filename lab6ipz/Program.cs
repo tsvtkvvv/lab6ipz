@@ -1,11 +1,23 @@
 ﻿using System;
+using System.Collections.Generic;
 
+public interface IObserver
+{
+    void Update(ComputerStateP state);
+}
+
+public interface ISubject
+{
+    void Attach(IObserver observer);
+    void Detach(IObserver observer);
+    void Notify();
+}
 
 public class ComputerStateP
 {
-    public bool InternetOK { get; }
-    public bool MemoryOK { get; }
-    public bool CpuLoadOK { get; }
+    public bool InternetOK { get; set; }
+    public bool MemoryOK { get; set; }
+    public bool CpuLoadOK { get; set; }
 
     public ComputerStateP(bool internetOK, int memory, int cpuLoad)
     {
@@ -14,65 +26,92 @@ public class ComputerStateP
         CpuLoadOK = cpuLoad <= 80;
     }
 }
-public class ComputerSystemP
+
+public class ComputerSystemP : ISubject
 {
-    public bool InternetAvailable;
-    public int MemoryAvailable;
-    public int CpuLoad;
+    private List<IObserver> observers = new List<IObserver>();
+
+    public bool InternetAvailable { get; private set; }
+    public int MemoryAvailable { get; private set; }
+    public int CpuLoad { get; private set; }
+
+    public void Attach(IObserver observer) => observers.Add(observer);
+    public void Detach(IObserver observer) => observers.Remove(observer);
+
+    public void Notify()
+    {
+        var state = GetState();
+        foreach (var observer in observers)
+        {
+            observer.Update(state);
+        }
+    }
+
     public ComputerStateP GetState()
     {
         return new ComputerStateP(InternetAvailable, MemoryAvailable, CpuLoad);
+    }
 
+    public void SetSystemStatus(bool internet, int memory, int cpu)
+    {
+        Console.WriteLine($"\n Internet: {internet}, RAM: {memory} MB, CPU: {cpu}% ");
+
+        InternetAvailable = internet;
+        MemoryAvailable = memory;
+        CpuLoad = cpu;
+
+        Notify();
     }
 }
-public class ComputerSystem
+
+public class ConsoleLogger : IObserver
 {
-    public bool InternetAvailable;
-    public int MemoryAvailable;
-    public int CpuLoad;
-
-    public void CheckState()
+    public void Update(ComputerStateP state)
     {
-        PrintStatus("Internet", InternetAvailable, "Internet OK", "Without connection");
-        PrintStatus("Memory", MemoryAvailable >= 256, "Memory OK", "Low memory");
-        PrintStatus("CPU Load", CpuLoad < 75, "CPU Load OK", "High CPU Load");
+        Console.WriteLine("Console Logger ");
+        Console.WriteLine($"Internet OK : {state.InternetOK}");
+        Console.WriteLine($"Memory OK : {state.MemoryOK}");
+        Console.WriteLine($"CPU Load OK : {state.CpuLoadOK}");
+       
     }
-
-    public void PrintStatus(string name, bool condition, string okMessage, string badMessage)
-    {
-        Console.WriteLine(condition ? okMessage : badMessage);
-    }
-
-
 }
 
-class Program
+public class CriticalAlertObserver : IObserver
 {
-    static void Main()
+    public void Update(ComputerStateP state)
     {
-        ComputerSystem system = new ComputerSystem();
-        system.InternetAvailable = true;
-        system.MemoryAvailable = 300;
-        system.CpuLoad = 63;
-
-        system.CheckState();
-        system.PrintStatus("Custom Check",
-            system.MemoryAvailable > 512,
-            "Sufficient Memory",
-            "Insufficient Memory");
-
-
-
-        var sys2 = new ComputerSystemP
+        if (!state.InternetOK || !state.MemoryOK || !state.CpuLoadOK)
         {
-            InternetAvailable = false,
-            MemoryAvailable = 1024,
-            CpuLoad = 45
-        };
+           
+            Console.WriteLine("!!! [CRITICAL ALERT] ");
+            Console.ResetColor();
+        }
+    }
+}
 
-        var state = sys2.GetState();
-        Console.WriteLine($"Internet OK: {state.InternetOK}");
-        Console.WriteLine($"Memory OK: {state.MemoryOK}");
-        Console.WriteLine($"CPU Load OK: {state.CpuLoadOK}");
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var systemMonitor = new ComputerSystemP();
+
+        systemMonitor.Attach(new ConsoleLogger());
+        systemMonitor.Attach(new CriticalAlertObserver());
+
+        
+
+        systemMonitor.SetSystemStatus(
+            internet: true,
+            memory: 1024,
+            cpu: 45
+        );
+
+       
+
+        systemMonitor.SetSystemStatus(
+            internet: false,
+            memory: 650,
+            cpu: 95
+        );
     }
 }
